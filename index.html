@@ -110,18 +110,21 @@ p { color: var(--white); font-size: 1rem; line-height: 1.7; }
 
 /* Right side art */
 .cover-art {
-  position: absolute; right: 80px; top: 50%; transform: translateY(-50%);
-  text-align: center; opacity: 0.08;
-  font-size: 22rem; line-height: 1; pointer-events: none; user-select: none;
-  color: var(--gold);
+  position: absolute; right: 60px; top: 50%; transform: translateY(-50%);
+  text-align: center; opacity: 0.06;
+  font-size: 18rem; line-height: 1; pointer-events: none; user-select: none;
+  color: var(--gold); z-index: 0;
 }
 .cover-badge {
-  position: absolute; right: 60px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: 50px; top: 50%; transform: translateY(-50%);
   border: 1px solid rgba(200,154,48,0.2); border-radius: 50%;
-  width: 280px; height: 280px; display: flex; flex-direction: column;
+  width: 260px; height: 260px; display: flex; flex-direction: column;
   align-items: center; justify-content: center; text-align: center;
   background: radial-gradient(circle, rgba(200,154,48,0.04), transparent 70%);
+  z-index: 2;
 }
+#s1 .content-wrap { max-width: 56%; }
+@media (max-width: 900px) { #s1 .content-wrap { max-width: 100%; } .cover-badge, .cover-art { display: none; } }
 .cover-badge .big { font-size: 3.5rem; margin-bottom: 4px; }
 .cover-badge .lbl { font-size: 0.65rem; letter-spacing: 3px; color: var(--gold-dim); font-family: 'Courier New', monospace; text-transform: uppercase; }
 .cover-badge .year { font-size: 1.2rem; color: var(--gold); font-family: 'Courier New', monospace; margin-top: 8px; }
@@ -293,6 +296,7 @@ p { color: var(--white); font-size: 1rem; line-height: 1.7; }
 <canvas id="bg"></canvas>
 
 <button id="narrate-btn" onclick="toggleNarrate()">🔊 NARRATE</button>
+<audio id="slide-audio" preload="auto"></audio>
 <div id="progress-bar"></div>
 <div id="slide-num">01 / 10</div>
 <div id="nav-hint">← → ARROW KEYS  ·  CLICK TO ADVANCE</div>
@@ -773,17 +777,17 @@ let current = 0;
 let narrating = false;
 let utterance = null;
 
-const narrations = [
-  "Welcome to the Forbidden Bourbon Command Center presentation. Today, we're going to show you the nerve center of our brand — everything it does today, everything it's going to do, and why this gives us an unfair advantage over every other craft bourbon brand in the market.",
-  "So what is the Command Center? It's one platform to run the entire Forbidden Bourbon brand from a single screen. Three pillars: Intelligence — monitoring everything being said about us online. Operations — managing all six of our social platforms with automation. And Growth — giving us real data to back every business decision.",
-  "Brand Intelligence is one of our most powerful live features. Right now, as we sit here, the system is monitoring press mentions, reviews, awards, podcast appearances, social media tags, and calculating our Brand Intelligence Score — a single number that tells us whether our brand health is growing or slipping. Nothing falls through the cracks.",
-  "Social media used to take eight to ten hours per week. Now? Thirty minutes. We manage Instagram, Facebook, X, TikTok, LinkedIn, and Pinterest from one dashboard. The AI Studio writes captions, hashtags, and post copy on demand. One click publishes to all six platforms simultaneously. And thirty plus professional product photos are ready to deploy at any time.",
-  "Mash Networks is our customer intelligence portal — six deep-dive views into our market. Demographics tells us who's buying. Geography shows where. Customer tracks loyalty and repeat purchases. Products shows SKU performance. Marketing measures every campaign dollar. Baskets shows what people buy alongside our bourbon. This is data most brands would pay tens of thousands of dollars for.",
-  "In the next ninety days, we're adding four major capabilities. Email intelligence to automatically scan and flag important inbound messages. Competitor web scraping to monitor what everyone else is doing in real time. Sales data integration so numbers flow in daily without a single manual export. And a full email marketing hub — no Mailchimp, no Constant Contact — built right in.",
-  "The future is where this gets truly exciting. An AI content engine that learns what performs and publishes automatically. Predictive market intelligence that tells us where to expand before we miss the window. A consumer mobile app integration, a retail partner portal, supply chain tracking from barrel to shelf, and a one-screen executive dashboard showing the full picture of the business in thirty seconds.",
-  "The numbers make the business case undeniable. Six platforms managed. Thirty minutes of weekly admin replacing eight to ten hours. Twenty-four seven brand monitoring. And this platform replaces over two thousand dollars per month in SaaS tools — tools like Hootsuite, Sprout Social, and Mention dot com. We own this. It compounds over time. And it makes us faster than any competitor.",
-  "Here's the roadmap. What's live today — brand intel, social management, AI studio, content calendar, Mash Networks, and more. What we're building next — email intelligence, competitor scraping, sales integration, and an email hub. And the future planned features — AI content engine, retail portal, consumer app connection, predictive analytics, and the executive command dashboard.",
-  "That's the Forbidden Bourbon Command Center. One platform. Total brand control. The foundation is built. Now I want to hear from the team — what features should we prioritize next? What data do you wish you had? And what's taking the most time that this could be automating for you right now?"
+const audioFiles = [
+  "audio/slide_01.mp3",
+  "audio/slide_02.mp3",
+  "audio/slide_03.mp3",
+  "audio/slide_04.mp3",
+  "audio/slide_05.mp3",
+  "audio/slide_06.mp3",
+  "audio/slide_07.mp3",
+  "audio/slide_08.mp3",
+  "audio/slide_09.mp3",
+  "audio/slide_10.mp3"
 ];
 
 // ─── Slide engine ─────────────────────────────────────────────────────────────
@@ -834,6 +838,8 @@ document.getElementById('deck').addEventListener('click', next);
 document.getElementById('narrate-btn').addEventListener('click', e => e.stopPropagation());
 
 // ─── Narration ────────────────────────────────────────────────────────────────
+const slideAudio = document.getElementById('slide-audio');
+
 function toggleNarrate() {
   narrating = !narrating;
   const btn = document.getElementById('narrate-btn');
@@ -842,27 +848,17 @@ function toggleNarrate() {
     narrate(current);
   } else {
     btn.textContent = '🔊 NARRATE'; btn.classList.remove('on');
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    slideAudio.pause();
+    slideAudio.currentTime = 0;
   }
 }
 
 function narrate(n) {
-  if (!window.speechSynthesis || !narrating) return;
-  window.speechSynthesis.cancel();
-  utterance = new SpeechSynthesisUtterance(narrations[n]);
-  utterance.rate = 0.92;
-  utterance.pitch = 0.95;
-  utterance.volume = 1;
-  // Try to pick a good voice
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v => v.name.includes('Daniel') || v.name.includes('Alex') || v.name.includes('Google US') || (v.lang === 'en-US' && v.localService));
-  if (preferred) utterance.voice = preferred;
-  window.speechSynthesis.speak(utterance);
-}
-
-// Preload voices
-if (window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  if (!narrating) return;
+  slideAudio.pause();
+  slideAudio.src = audioFiles[n];
+  slideAudio.load();
+  slideAudio.play().catch(() => {});
 }
 
 // ─── Live clock ───────────────────────────────────────────────────────────────
